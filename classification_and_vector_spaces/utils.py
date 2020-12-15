@@ -11,29 +11,6 @@ from nltk.stem import PorterStemmer
 from nltk.tokenize import TweetTokenizer
 
 
-all_positive_tweets = twitter_samples.strings('positive_tweets.json')
-all_negative_tweets = twitter_samples.strings('negative_tweets.json')
-tweets = all_positive_tweets + all_negative_tweets
-
-
-print(f'Number of positive tweets: {len(all_positive_tweets)}')
-print(f'Number of positive tweets: {len(all_negative_tweets)}')
-print(f'Type of tweets {type(all_positive_tweets)}')
-
-'''
-fig = plt.figure(figsize=(5,5))
-labels = 'Positive', 'Negative'
-sizes = [len(all_positive_tweets), len(all_negative_tweets)]
-plt.pie(sizes, labels=labels, autopct='%1.1f%%',
-        shadow=True, startangle=90)
-plt.axis('equal')
-plt.show()
-'''
-
-'''
-Processing raw strings for semantic analysis
-'''
-
 def process_tweet(tweet):
     '''Process tweet function
     Input:
@@ -87,26 +64,3 @@ def build_freqs(tweets, ys):
             else:
                 freqs[pair] = 1
     return freqs
-
-
-'''
-Tests process_tweets
-'''
-for ind in range(4):
-    idx = random.randint(1, 4000)
-    tweet = all_positive_tweets[idx]
-    print(f'tweet: {tweet}\nprocessed_tweet: {process_tweet(tweet)}')
-
-'''
-Tests create frequency dictionary
-'''
-labels = np.append(np.ones(len(all_positive_tweets)),
-                   np.zeros(len(all_negative_tweets)))
-freqs = build_freqs(tweets, labels)
-print(f'type(freqs) {type(freqs)}')
-print(freqs)
-
-
-
-
-
