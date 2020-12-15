@@ -10,6 +10,8 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.tokenize import TweetTokenizer
 
+from matplotlib.patches import Ellipse
+import matplotlib.transforms as transforms
 
 def process_tweet(tweet):
     '''Process tweet function
@@ -64,3 +66,67 @@ def build_freqs(tweets, ys):
             else:
                 freqs[pair] = 1
     return freqs
+
+def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
+    """Create a plot of the covariance confidence ellipse of `x` and `y`
+    :parameters
+    x, y: array_like, shape (n, )
+        Input data
+    ax: matplotlib.axes.Axes
+    n_std: float
+        The number of standard deviations to determine the ellipse's radiuses.
+    :returns
+    matplotlib.patches.Ellipse
+    Other parameters:
+    kwargs: ``matplotlib.patches.Patch` properties
+    """
+    if x.size != y.size:
+        raise ValueError("x and y must be of the same size")
+    cov = np.cov(x, y)
+    pearson = cov[0, 1]/ np.sqrt(cov[0, 0]*cov[1, 1])
+    # Using a special case to obtaiin the eigenvalues of this
+    # two-dimensional dataset
+    ell_radius_x = np.sqrt(1 + pearson)
+    ell_radius_y = np.sqrt(1 - pearson)
+    ellipse = Ellipse((0, 0),
+                      width=ell_radius_x*2,
+                      height=ell_radius_y*2,
+                      facecolor=facecolor,
+                      **kwargs
+                      )
+    # Calculating the standard deviation of x from
+    # the squareroot of the variance and multiplying
+    # with the given number of standard deviations.
+    scale_x = np.sqrt(cov[0, 0])*n_std
+    mean_x = np.mean(x)
+
+    # Calculating the standard deviation of y ...
+    scale_y = np.sqrt(cov[1, 1])*n_std
+    mean_y = np.mean(y)
+
+    transf = transforms.Affine2D().\
+        rotate_deg(45).\
+        scale(scale_x, scale_y).\
+        translate(mean_x, mean_y)
+
+    ellipse.set_transform(transf + ax.transData)
+    return ax.add_patch(ellipse)
+
+def lookup(freqs, word, label):
+    """
+    :param freqs: a dictionary with the frequency of each pair (or tuple)
+    :param word: the word to look up
+    :param label: the label corresponding to the word
+    :return: the number of times the word with its corresponding label appears
+    """
+    n = 0 # freqs.get((word, label), 0)
+    pair = (word, label)
+    if (pair in freqs):
+        n = freqs[pair]
+    return n
+
+
+
+
+
+
