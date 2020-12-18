@@ -346,12 +346,163 @@ estimated_probabilities = estimate_probabilities("a", unigram_counts, bigram_cou
 print(estimated_probabilities)
 
 
+'''
+Count and probability matrices
+'''
+
+def make_count_matrix(n_plus1_gram_counts, vocabulary):
+    # add <e> and <unk> to the vocabulary
+    # <s> is omitted since it should not appear as the next word
+    vocabulary = vocabulary + ["<e>", "<unk>"]
+
+    # obtain unique n-grams
+    n_grams = []
+    for n_plus1_gram in n_plus1_gram_counts.keys():
+        n_gram = n_plus1_gram[0:-1]
+        n_grams.append(n_gram)
+    n_grams = list(set(n_grams))
+
+    # mapping from n-grams to row
+    row_index = {n_gram:i for i,n_gram in enumerate(n_grams)}
+
+    # mapping from next word to column
+    col_index = {word:j for j, word in enumerate(vocabulary)}
+
+    nrow = len(n_grams)
+    ncol = len(vocabulary)
+    count_matrix = np.zeros((nrow, ncol))
+
+    for n_plus1_gram, count in n_plus1_gram_counts.items():
+        n_gram = n_plus1_gram[0:-1]
+        word = n_plus1_gram[-1]
+        if word not in vocabulary:
+            continue
+        i = row_index[n_gram]
+        j = col_index[word]
+        count_matrix[i, j] = count
+
+    count_matrix = pd.DataFrame(count_matrix, index=n_grams, columns=vocabulary)
+
+    return count_matrix
+
+sentences = [
+    ["i", "like", "a", "cat"],
+    ["this", "dog", "is", "like", "a", "cat"]
+]
+unique_words = list(set(sentences[0] + sentences[1]))
+bigram_counts = count_n_grams(sentences, 2)
+
+print("bigram counts")
+print(make_count_matrix(bigram_counts, unique_words))
 
 
+def make_probability_matrix(n_plus1_gram_counts, vocabulary, k):
+    count_matrix = make_count_matrix(n_plus1_gram_counts, unique_words)
+    count_matrix += k
+    prob_matrix = count_matrix.div(count_matrix.sum(axis=1), axis=0)
+    return prob_matrix
+
+sentences = [
+    ["i", "like", "a", "cat"],
+    ["this", "dog", "is", "like", "a", "cat"]
+]
+unique_words = list(set(sentences[0] + sentences[1]))
+bigram_counts = count_n_grams(sentences, 2)
+
+print("bigram counts")
+print(make_probability_matrix(bigram_counts, unique_words, k=1))
 
 
+'''
+Calculating Perplexity
+'''
+def calculate_preplexity(
+        sentence,
+        n_gram_counts,
+        n_plus1_gram_counts,
+        vocabulary_size,
+        k=1.0
+):
+    """
+    Calculate the perplexity for a list of sentences
+    :param sentence: list of strings
+    :param n_gram_counts: dictionary of counts of n-grams
+    :param n_plus1_gram_counts: dictionary of couont of (n+1)-grams
+    :param vocabulary_size: number of unique words in the vocabulary
+    :param k: positive smoothing constant
+    :return: perplexity score
+    """
 
+    # length of previous words
+    n = len(list(n_gram_counts.keys())[0])
 
+    # prepend <s> and append <e>
+    sentence = ["<s>"]*n + sentence + ["<e>"]
+
+    # cast the sentence from a list to a tuple
+    sentence = tuple(sentence)
+
+    # length of sentence (after adding <s> and <e> tokens)
+    N = len(sentence)
+
+    # the variable p will hold the product
+    # this is calculating inside the n-root
+    # update this in the code below
+    product_pi = 1.0
+
+    # index t ranges from n to N-1, inclusive on both ends
+    for t in range(n, N):
+
+        # get the n-gram preceding the word at position t
+        n_gram = sentence[t-n:t]
+
+        # get the word at position t
+        word = sentence[t]
+
+        # estimate the probability of thw word given the n-gram
+        # using the n-gram counts, n-plus1-gram counts,
+        # vocabulary size, and smoothing constant
+        probability = estimate_probability(word,
+                                           n_gram,
+                                           n_gram_counts,
+                                           n_plus1_gram_counts,
+                                           len(unique_words),
+                                           k=1
+                                           )
+
+        # update the product of the probabilities
+        # this 'product_pi' is a cumulative product
+        # of the (1/P) factors that are calculated in the loop
+        product_pi *= 1 / probability
+
+    perplexity = product_pi**(1/float(N))
+
+    return perplexity
+
+# test the perplexity calculation function
+sentences = [
+    ["i", "like", "a", "cat"],
+    ["this", "dog", "is", "like", "a", "cat"]
+]
+unique_words = list(set(sentences[0] + sentences[1]))
+bigram_counts = count_n_grams(sentences, 2)
+
+perplexity_train = calculate_preplexity(sentences[0],
+                                        unigram_counts,
+                                        bigram_counts,
+                                        len(unique_words),
+                                        k=1.0
+                                        )
+print(f"Perplexity for first train sample: {perplexity_train:.4f}")
+
+test_sentence = ["i", "like", "a", "dog"]
+perplexity_test = calculate_preplexity(test_sentence,
+                                       unigram_counts,
+                                       bigram_counts,
+                                       len(unique_words),
+                                       k=1.0
+                                       )
+print(f"Perplexity for test sample: {perplexity_test:.4f}")
 
 
 
