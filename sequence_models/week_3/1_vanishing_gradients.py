@@ -12,3 +12,8 @@ def sigmoid_gradient(x):
 
 
 
+
+
+
+
+
